@@ -134,12 +134,14 @@ lib_libopenvswitch_la_SOURCES = \
 	lib/namemap.c \
 	lib/netdev-dpdk.h \
 	lib/netdev-dummy.c \
+	lib/netdev-netmap.h \
 	lib/netdev-provider.h \
 	lib/netdev-vport.c \
 	lib/netdev-vport.h \
 	lib/netdev-vport-private.h \
 	lib/netdev.c \
 	lib/netdev.h \
+	lib/netmap.h \
 	lib/netflow.h \
 	lib/netlink.c \
 	lib/netlink.h \
@@ -401,6 +403,17 @@ lib_libopenvswitch_la_SOURCES += \
 else
 lib_libopenvswitch_la_SOURCES += \
 	lib/dpdk-stub.c
+endif
+
+if NETMAP_NETDEV
+lib_libopenvswitch_la_SOURCES += \
+	lib/netmap.c \
+	lib/netdev-netmap.c \
+	lib/netmap-utils.c \
+	lib/netmap-utils.h
+else
+lib_libopenvswitch_la_SOURCES += \
+	lib/netmap-stub.c
 endif
 
 if WIN32

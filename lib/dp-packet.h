@@ -26,6 +26,7 @@
 #endif
 
 #include "netdev-dpdk.h"
+#include "netdev-netmap.h"
 #include "openvswitch/list.h"
 #include "packets.h"
 #include "util.h"
@@ -42,6 +43,7 @@ enum OVS_PACKED_ENUM dp_packet_source {
     DPBUF_DPDK,                /* buffer data is from DPDK allocated memory.
                                 * ref to dp_packet_init_dpdk() in dp-packet.c.
                                 */
+    DPBUF_NETMAP,              /* Buffers are from netmap allocated memory. */
 };
 
 #define DP_PACKET_CONTEXT_SIZE 64
@@ -60,6 +62,9 @@ struct dp_packet {
     uint32_t size_;             /* Number of bytes in use. */
     uint32_t rss_hash;          /* Packet hash. */
     bool rss_hash_valid;        /* Is the 'rss_hash' valid? */
+#endif
+#ifdef NETMAP_NETDEV
+    uint32_t buf_idx;             /* Netmap slot index. */
 #endif
     enum dp_packet_source source;  /* Source of memory allocated as 'base'. */
 
@@ -115,6 +120,7 @@ void dp_packet_use_stub(struct dp_packet *, void *, size_t);
 void dp_packet_use_const(struct dp_packet *, const void *, size_t);
 
 void dp_packet_init_dpdk(struct dp_packet *, size_t allocated);
+void dp_packet_init_netmap(struct dp_packet *, void *, size_t);
 
 void dp_packet_init(struct dp_packet *, size_t);
 void dp_packet_uninit(struct dp_packet *);
@@ -172,6 +178,13 @@ dp_packet_delete(struct dp_packet *b)
             /* If this dp_packet was allocated by DPDK it must have been
              * created as a dp_packet */
             free_dpdk_buf((struct dp_packet*) b);
+            return;
+        } else if (b->source == DPBUF_NETMAP) {
+            /* It was allocated by a netdev_netmap, it will be marked
+             * for reuse. */
+#ifdef NETMAP_NETDEV
+            nm_free_packet(b);
+#endif
             return;
         }
 

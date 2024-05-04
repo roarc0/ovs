@@ -105,6 +105,19 @@ dp_packet_init_dpdk(struct dp_packet *b, size_t allocated)
     b->source = DPBUF_DPDK;
 }
 
+/* Initializes 'b' as a dp_packet whose data points to a netmap buffer of size
+ * 'size' bytes. */
+#ifdef NETMAP_NETDEV
+void
+dp_packet_init_netmap(struct dp_packet *b, void *data, size_t size)
+{
+    b->source = DPBUF_NETMAP;
+    dp_packet_set_base(b, data);
+    dp_packet_set_data(b, data);
+    dp_packet_set_size(b, size);
+}
+#endif
+
 /* Initializes 'b' as an empty dp_packet with an initial capacity of 'size'
  * bytes. */
 void
@@ -126,6 +139,9 @@ dp_packet_uninit(struct dp_packet *b)
              * created as a dp_packet */
             free_dpdk_buf((struct dp_packet*) b);
 #endif
+        } else if (b->source == DPBUF_NETMAP) {
+            /* If this dp_packet was allocated by NETMAP, release it. */
+            nm_free_packet(b);
         }
     }
 }
@@ -239,6 +255,9 @@ dp_packet_resize__(struct dp_packet *b, size_t new_headroom, size_t new_tailroom
 
     switch (b->source) {
     case DPBUF_DPDK:
+        OVS_NOT_REACHED();
+
+    case DPBUF_NETMAP:
         OVS_NOT_REACHED();
 
     case DPBUF_MALLOC:

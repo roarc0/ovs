@@ -341,6 +341,40 @@ AC_DEFUN([OVS_CHECK_DPDK], [
   AM_CONDITIONAL([DPDK_NETDEV], test "$DPDKLIB_FOUND" = true)
 ])
 
+dnl OVS_CHECK_NETMAP
+dnl
+dnl Check netmap
+AC_DEFUN([OVS_CHECK_NETMAP], [
+  AC_ARG_WITH([netmap],
+              [AC_HELP_STRING([--with-netmap], [Enable NETMAP])],
+              [have_netmap=true])
+  AC_MSG_CHECKING([whether netmap datapath is enabled])
+
+  if test "$have_netmap" != true || test "$with_netmap" = no; then
+    AC_MSG_RESULT([no])
+  else
+    AC_MSG_RESULT([yes])
+    NETMAP_INCLUDE="-I/usr/include/net"
+    CFLAGS="$CFLAGS $NETMAP_INCLUDE"
+    NETMAP_FOUND=false
+    AC_LINK_IFELSE(
+       [AC_LANG_PROGRAM([#include <net/if.h>
+                         #include<netinet/in.h>
+                         #include<net/netmap.h>
+                         #include<net/netmap_user.h>],
+                        [int main(){};])],
+       [NETMAP_FOUND=true])
+    if $NETMAP_FOUND; then
+        AC_DEFINE([NETMAP_NETDEV], [1], [NETMAP datapath is enabled.])
+        OVS_CFLAGS="$OVS_CFLAGS $NETMAP_INCLUDE"
+    else
+        AC_MSG_ERROR([Could not find NETMAP headers])
+    fi
+  fi
+
+  AM_CONDITIONAL([NETMAP_NETDEV], test "$NETMAP_FOUND" = true)
+])
+
 dnl OVS_GREP_IFELSE(FILE, REGEX, [IF-MATCH], [IF-NO-MATCH])
 dnl
 dnl Greps FILE for REGEX.  If it matches, runs IF-MATCH, otherwise IF-NO-MATCH.
